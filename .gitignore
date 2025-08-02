@@ -7,4 +7,4 @@ CMakeCache.txt
 *.user
 *.cmake
 *.filters
-/.vscode/
+.vscode/
