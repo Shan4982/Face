@@ -1,6 +1,5 @@
 build
 data
-.vscode/
 CMakeCache.txt
 *.vcxproj
 *.sln
@@ -8,3 +7,4 @@ CMakeCache.txt
 *.user
 *.cmake
 *.filters
+/.vscode/
