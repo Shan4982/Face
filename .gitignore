@@ -2,3 +2,9 @@ build
 data
 ./vscode
 CMakeCache.txt
+*.vcxproj
+*.sln
+*.suo
+*.user
+*.cmake
+*.filters

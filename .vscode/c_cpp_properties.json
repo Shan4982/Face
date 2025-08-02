@@ -5,7 +5,7 @@
             "includePath": [
                 "${workspaceFolder}/**",
                 "E:\\astu\\opencv\\build\\include",
-                "G:\\head\\sqlite-amalgamation\\sqlite-amalgamation-3500400"
+                ".\\src"
             ],
             "defines": [
                 "_DEBUG",
