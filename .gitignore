@@ -1,6 +1,6 @@
 build
 data
-./vscode
+.vscode
 CMakeCache.txt
 *.vcxproj
 *.sln
