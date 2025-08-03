@@ -8,3 +8,6 @@ CMakeCache.txt
 *.cmake
 *.filters
 .vscode/
+include
+facephotos
+
