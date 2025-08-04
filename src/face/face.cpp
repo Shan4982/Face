@@ -38,5 +38,7 @@ Mat& faceDetect::Get_ROI_face(Mat& frame) {
         }
         // 显示结果
         imshow("人脸检测", frame);
-        return frame;
+        Mat ROI ;
+        resize(frame(faces[0]),ROI,Size(300,300));
+        return ROI;
 }
