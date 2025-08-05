@@ -9,8 +9,10 @@ using namespace cv;
 class ippgProcess {
     public:
         void process(Mat & frame);
-        void get_frame(Mat &frame);
+        bool get_frame(Mat &frame);
         void mean_process();
+        void BandpassFilter(std::vector<double>& signal);
+        double CalculateHeartRate(const std::vector<double>& signal, double fps);
     private:
         vector<double> ippgSingal;
         vector<Mat> frames;

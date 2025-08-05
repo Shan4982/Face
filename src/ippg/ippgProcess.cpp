@@ -46,10 +46,55 @@ void mean_process() {
 
 
 
-void ippgProcess::get_frame(Mat &frame) {
-    frames.push_back(frame);  // Add the frame to the frames vector
+bool ippgProcess::get_frame(Mat &frame) {
     if(frames.size()>=MAX_FRAME) 
     {
         cout<<"frames full"<<endl;
-    } // When the number of frames reaches 10, perform the mean processing
+        return  false;
+    } 
+    frames.push_back(frame);  // Add the frame to the frames vector
+    return true;
+}
+
+
+void ippgProcess::BandpassFilter(std::vector<double>& signal) {
+    // 1. 傅里叶变换
+    cv::Mat input(signal.size(), 1, CV_64F, signal.data());
+    cv::Mat planes[] = {input.clone(), cv::Mat::zeros(input.size(), CV_64F)};
+    cv::Mat complex;
+    cv::merge(planes, 2, complex);
+    cv::dft(complex, complex);
+    
+    // 2. 构造带通滤波器 (0.8-4Hz)
+    cv::Mat mask = cv::Mat::zeros(complex.size(), CV_64F);
+    int lowIdx = 0.8 * signal.size() / 30;  // fps为视频帧率
+    int highIdx = 4 * signal.size() / 30;
+    cv::rectangle(mask, cv::Point(lowIdx,0), cv::Point(highIdx, mask.rows), 1, -1);
+    
+    // 3. 频域滤波
+    cv::Mat filtered;
+    cv::multiply(complex, mask, filtered);
+    
+    // 4. 逆变换还原信号
+    cv::idft(filtered, filtered, cv::DFT_REAL_OUTPUT);
+    cv::normalize(filtered, filtered, 0, 1, cv::NORM_MINMAX);
+    filtered.copyTo(input);
+}
+
+
+double CalculateHeartRate(const std::vector<double>& signal, double fps) {
+    // 1. 计算FFT
+    cv::Mat input(signal.size(), 1, CV_64F, (void*)signal.data());
+    cv::Mat spectrum;
+    cv::dft(input, spectrum, cv::DFT_COMPLEX_OUTPUT);
+
+    // 2. 找主频峰值 (跳过直流分量)
+    cv::Point maxLoc;
+    cv::Mat powerSpectrum;
+    cv::magnitude(spectrum.col(0), spectrum.col(1), powerSpectrum);
+    cv::minMaxLoc(powerSpectrum.rowRange(1, powerSpectrum.rows/2), NULL, NULL, NULL, &maxLoc);
+
+    // 3. 转换为心率 (BPM)
+    double peakFreq = maxLoc.y * fps / signal.size();
+    return peakFreq * 60.0;  // Hz → BPM
 }
