@@ -8,7 +8,12 @@ using namespace cv;
 class Camera {
 private:
     VideoCapture cap;
-    public:
-    Mat& getCameraFrame(Mat& frame);
+public:
+    bool getCameraFrame(Mat& frame);
     Camera(VideoCapture cap): cap(cap) {};
+    ~Camera() {
+        cap.release();
+    }
+    bool sync(const Mat &frame);
+    bool is_same(const Mat &frame1, const Mat &frame2);
 };

@@ -13,12 +13,13 @@ file(GLOB_RECURSE SOURCES "src/*.cpp")
 include_directories(${PROJECT_SOURCE_DIR}/src/face)
 include_directories(${PROJECT_SOURCE_DIR}/src/camera)
 include_directories(${PROJECT_SOURCE_DIR}/src/database)
+include_directories(${PROJECT_SOURCE_DIR}/src/ippg)
+include_directories(${PROJECT_SOURCE_DIR}/src/controller)
 
 find_package(OpenCV REQUIRED)
 find_package(SQLite3 REQUIRED)
 
 
-# include_directories(${SQLite3_INCLUDE_DIRS})
 
 add_executable(test ${SOURCES})
 

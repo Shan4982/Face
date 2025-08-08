@@ -8,5 +8,5 @@ class faceDetect {
 private:
 
     public:
-    Mat& Get_ROI_face(Mat& src);
+    Mat Get_ROI_face(Mat& src);
 };

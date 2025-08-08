@@ -1,6 +1,6 @@
 #include "face.hpp"
 
-Mat& faceDetect::Get_ROI_face(Mat& frame) {
+Mat faceDetect::Get_ROI_face(Mat& frame) {
     if (frame.empty()) 
     {
         cerr << "错误：无法读取视频帧！" << endl;
@@ -36,9 +36,8 @@ Mat& faceDetect::Get_ROI_face(Mat& frame) {
                 2                     // 线宽
             );
         }
-        // 显示结果
-        imshow("人脸检测", frame);
         Mat ROI ;
+        if(faces.size()!=0)
         resize(frame(faces[0]),ROI,Size(300,300));
         return ROI;
 }
