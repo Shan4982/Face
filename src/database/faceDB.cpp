@@ -39,4 +39,5 @@ bool faceDB::createTable(){
         sqlite3_free(errMsg);  // Free the error message memory
         return false;
     }
+    return true;
 }

@@ -14,6 +14,6 @@ public:
     ~Camera() {
         cap.release();
     }
-    bool sync(const Mat &frame);
-    bool is_same(const Mat &frame1, const Mat &frame2);
+    //bool sync(Mat &frame);
+    //bool is_same(const Mat &frame1, const Mat &frame2);
 };

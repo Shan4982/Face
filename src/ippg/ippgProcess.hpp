@@ -44,7 +44,9 @@ public:
     double processPPGSignal(double rawSample) {
         // 1. 更新信号缓冲区
         updateBuffer(rawSample);
-        
+        // 数据量不足时直接返回0
+        if (std::count_if(signalBuffer.begin(), signalBuffer.end(), [](double v){return v!=0.0;}) < BUFFER_SIZE)
+            return 0.0;
         // 2. 信号预处理
         std::vector<double> processed = preprocessSignal();
         
@@ -111,8 +113,13 @@ private:
     // 峰值检测算法
     std::vector<int> detectPeaks(const std::vector<double>& signal) {
         std::vector<int> peaks;
-        const int windowSize = 6; // 200ms窗口
-        
+        const int windowSize = 20; // 200ms窗口
+
+        // 防止信号长度不足导致下标越界
+        if (signal.size() <= 2 * windowSize) {
+            return peaks;
+        }
+
         // 自适应阈值计算
         double threshold = 0.0;
         for (double val : signal) {
@@ -140,28 +147,20 @@ private:
                 }
             }
         }
-        
+        cout<<"peaks:"<<peaks.size()<<endl;
         return peaks;
     }
     
     // 心率计算
     double calculateHeartRate(const std::vector<int>& peakIndices) {
-        if (peakIndices.size() < 2) {
-            return 0.0; // 不足两个峰值，无法计算
-        }
-        
-        // 1. 计算峰间期(样本数)
+        if (peakIndices.size() < 2) return 0.0;
         std::vector<double> intervals;
-        for (int i = 1; i < peakIndices.size(); i++) {
+        for (int i = 1; i < peakIndices.size(); i++)
             intervals.push_back(peakIndices[i] - peakIndices[i-1]);
-        }
-        
-        // 2. 中值滤波去除异常值
+        if (intervals.empty()) return 0.0;
         std::vector<double> sortedIntervals = intervals;
         std::sort(sortedIntervals.begin(), sortedIntervals.end());
         double median = sortedIntervals[sortedIntervals.size()/2];
-        
-        // 3. 过滤异常区间 (偏离中值>20%)
         double validSum = 0.0;
         int validCount = 0;
         for (double interval : intervals) {
@@ -170,22 +169,10 @@ private:
                 validCount++;
             }
         }
-        
         if (validCount == 0) return 0.0;
-        
-        // 4. 计算平均峰间期(秒)
         double avgInterval = (validSum / validCount) / SAMPLE_RATE;
-        
-        // 5. 转换为心率(BPM)
+        if (avgInterval <= 0.0) return 0.0;
         double heartRate = 60.0 / avgInterval;
-        
-        // 6. 更新历史缓冲区
-        peakIntervals.push_back(heartRate);
-        if (peakIntervals.size() > 5) peakIntervals.pop_front();
-        
-        // 7. 移动平均滤波
-        double sum = 0.0;
-        for (double hr : peakIntervals) sum += hr;
-        return sum / peakIntervals.size();
+        return heartRate;
     }
 };
