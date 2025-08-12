@@ -1,11 +1,12 @@
 #include "face.hpp"
 
-Mat faceDetect::Get_ROI_face(Mat& frame) {
+Mat faceDetect::Get_ROI_face(Mat& frame,Mat& ROI) {
     if (frame.empty()) 
     {
         cerr << "错误：无法读取视频帧！" << endl;
-        return frame;
+        return Mat();
     }
+    resize(frame,frame,Size(640,480));
     CascadeClassifier faceCascade;
     if (!faceCascade.load("E:\\face\\data\\haarcascade_frontalface_default.xml")) {
         cerr << "错误：无法加载人脸检测模型！" << endl;
@@ -36,8 +37,9 @@ Mat faceDetect::Get_ROI_face(Mat& frame) {
                 2                     // 线宽
             );
         }
-        Mat ROI ;
         if(faces.size()!=0)
-        resize(frame(faces[0]),ROI,Size(300,300));
+        resize(frame(faces[0]),ROI,Size(200,200));
+        else return Mat();
+        ROI=ROI(Rect(ROI.cols/4,ROI.rows/4,ROI.cols/2,ROI.rows/2));
         return ROI;
 }

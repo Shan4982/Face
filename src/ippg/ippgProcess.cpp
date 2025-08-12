@@ -97,6 +97,11 @@
 
 double ippgProcess::get_RawSimple(const Mat& frame)
 {
+    if(frame.empty())
+    {
+        cout<<"frame is empty"<<endl;
+    return 0.0; // ¼ì²éÍ¼ÏñÊÇ·ñÎª¿Õ
+    }
     vector<Mat> channels;
     split(frame,channels);
     Mat green;

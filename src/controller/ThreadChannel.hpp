@@ -16,6 +16,10 @@ private:
     bool if_end = false;
 public:
     // 发送数据到通道
+    ~ThreadChannel() {
+        close(); // 确保通道在析构时关闭
+    }
+
     void send(double data) {
         std::lock_guard<std::mutex> lock(mtx); // 加锁
         dataQueue.push(data); // 数据入队
@@ -32,14 +36,16 @@ public:
         dataQueue.pop(); // 数据出队
         return data; // 返回数据
     }
-    void show_end()
-    {
-        unique_lock<mutex> lock(mtx);
-        if_end = true;
-    }
-    void wait_end()
-    {
-        unique_lock<mutex> lock(mtx);
-        cv.wait(lock, [this] { return if_end; });
-    }
+
+    void close() {
+    std::lock_guard<std::mutex> lock(mtx);
+    isClosed = true;
+    cv.notify_all();
+}
+
+    // size_t queue_size() const{ // 加锁
+    //     std::lock_guard<std::mutex> lock(mtx);
+    //     return dataQueue.size();
+    // }
 };
+
