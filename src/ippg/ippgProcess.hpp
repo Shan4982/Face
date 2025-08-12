@@ -28,12 +28,13 @@ private:
     // 滤波器参数
     const double LOW_CUTOFF = 0.5;   // Hz (30 BPM)
     const double HIGH_CUTOFF = 4.0;  // Hz (240 BPM)
-    const int SAMPLE_RATE = 30;     // Hz
+    const int SAMPLE_RATE = 15; // fps
+    const int BUFFER_SIZE = 10 * SAMPLE_RATE; // 10秒
     
     // 历史数据存储
     std::deque<double> signalBuffer;
     std::deque<double> peakIntervals;
-    const int BUFFER_SIZE = 5 * SAMPLE_RATE; // 5秒缓冲区
+    const int windowSize = int(0.3 * SAMPLE_RATE); // 0.3秒窗口
     
 public:
     HeartRateCalculator() {
@@ -113,7 +114,7 @@ private:
     // 峰值检测算法
     std::vector<int> detectPeaks(const std::vector<double>& signal) {
         std::vector<int> peaks;
-        const int windowSize = 20; // 200ms窗口
+        const int windowSize = int(0.3 * SAMPLE_RATE); // 0.3秒窗口
 
         // 防止信号长度不足导致下标越界
         if (signal.size() <= 2 * windowSize) {

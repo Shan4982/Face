@@ -1,5 +1,5 @@
 #include "camera/camera.hpp"
-#include "face/face.hpp"
+#include "face/faceDetect.hpp"
 #include "database/faceDB.hpp"
 #include "ippg/ippgProcess.hpp"
 #include "controller/ThreadChannel.hpp"
@@ -51,7 +51,7 @@ int main(){
         auto t1 = std::chrono::high_resolution_clock::now();
             cout<<i++<<":"<<endl;
             camera.getCameraFrame(frame);
-            ROI = faceDetector.Get_ROI_face(frame,ROI);
+            ROI = faceDetector.Get_ROI_face_DNN(frame);
             imshow("frame",frame);
             double raw_simple = ippgProcessor.get_RawSimple(ROI);
            channel_A_B.send(raw_simple); 
