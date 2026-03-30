@@ -1,112 +1,137 @@
 #include "ippgProcess.hpp"
 
-// std::vector<double> ippgSignal; // Define datalist as a global variable
-// std::vector<Mat> frames; // Define frames as a global variable
-
-// void ippgProcess::mean_process() {
-//     Mat frame;
-//     vector<Mat> channels;
-//     for(int i=0;i<frames.size();i++)
-//     {  // Vector to store the three channels of the image
-//     split(frames[1],channels);
-//     Mat green;  // Result image after processing
-//     green = channels[1];  // Get the green channel of the image
-//     double mean_value;
-//     mean_value = mean(green)[0];  // Calculate the mean value of the green channel
-//     ippgSignal.push_back(mean_value);  // Add the mean value to the data list
-//     }
-//         const int window_size = 15; // 滑动窗口大小
-//         std::vector<double> filtered(ippgSignal.size());
-        
-//         // 滑动窗口均值滤波
-//         for(int i = 0; i < ippgSignal.size(); ++i) {
-//             int start = std::max(0, (int)i - window_size/2);
-//             int end = std::min((int)ippgSignal.size()-1,i + window_size/2);
-            
-//             double sum = 0.0;
-//             for(int j = start; j <= end; ++j) {
-//                 sum += ippgSignal[j];
-//             }
-//             filtered[i] = sum / (end - start + 1);
-//         }
-//         ippgSignal = filtered;
-
-//         double max_value = *std::max_element(ippgSignal.begin(), ippgSignal.end()); // 找到最大值
-//         double min_value = *std::min_element(ippgSignal.begin(), ippgSignal.end()); // 找到最小值
-//         // 归一化处理
-//         for(int i=0;i<ippgSignal.size();i++)
-//         {
-//             ippgSignal[i] = ((ippgSignal[i]-min_value)/(max_value-min_value));
-//         }
-// }
-
-
-
-// bool ippgProcess::get_frame(Mat &frame) {
-
-//     frames.push_back(frame);  // Add the frame to the frames vector
-//     return true;
-// }
-
-
-// void ippgProcess::BandpassFilter(std::vector<double>& signal) {
-//     // 1. 傅里叶变换
-//     cv::Mat input(signal.size(), 1, CV_64F, signal.data());
-//     cv::Mat planes[] = {input.clone(), cv::Mat::zeros(input.size(), CV_64F)};
-//     cv::Mat complex;
-//     cv::merge(planes, 2, complex);
-//     cv::dft(complex, complex);
+// ==================== SignalSimulator ====================
+double SignalSimulator::generateSample() {
+    t += dt;
+    // 基础心跳信号
+    double ppg = std::sin(2.0 * CV_PI * (true_hr / 60.0) * t);
+    // 基线漂移 (低频噪声)
+    double baseline = 0.5 * std::sin(2.0 * CV_PI * 0.1 * t);
+    // 高斯白噪声
+    double noise = 0.1 * ((rand() % 100) / 50.0 - 1.0);
+    // 模拟运动伪影 (偶尔的脉冲)
+    double motion = (rand() % 1000 < 5) ? 2.0 : 0.0;
     
-//     // 2. 构造带通滤波器 (0.8-4Hz)
-//     cv::Mat mask = cv::Mat::zeros(complex.size(), CV_64F);
-//     int lowIdx = 0.8 * signal.size() / 30;  // fps为视频帧率
-//     int highIdx = 4 * signal.size() / 30;
-//     cv::rectangle(mask, cv::Point(lowIdx,0), cv::Point(highIdx, mask.rows), 1, -1);
-    
-//     // 3. 频域滤波
-//     cv::Mat filtered;
-//     cv::multiply(complex, mask, filtered);
-    
-//     // 4. 逆变换还原信号
-//     cv::idft(filtered, filtered, cv::DFT_REAL_OUTPUT);
-//     cv::normalize(filtered, filtered, 0, 1, cv::NORM_MINMAX);
-//     filtered.copyTo(input);
-// }
+    return ppg + baseline + noise + motion;
+}
 
-
-// double  ippgProcess::CalculateHeartRate(double fps) {
-//     // 1. 计算FFT
-//     cv::Mat input(ippgSignal.size(), 1, CV_64F, (void*)ippgSignal.data());
-//     cv::Mat spectrum;
-//     cv::dft(input, spectrum, cv::DFT_COMPLEX_OUTPUT);
-
-//     // 2. 找主频峰值 (跳过直流分量)
-//     cv::Point maxLoc;
-//     cv::Mat powerSpectrum;
-//     cv::magnitude(spectrum.col(0), spectrum.col(1), powerSpectrum);
-//     minMaxLoc(powerSpectrum.rowRange(1, powerSpectrum.rows/2), NULL, NULL, NULL, &maxLoc);
-
-//     // 3. 转换为心率 (BPM)
-//     double peakFreq = maxLoc.y * fps / ippgSignal.size();
-//     return peakFreq * 60.0;  // Hz → BPM
-// }
-
-// bool ippgProcess::is_full_frames() {
-//     return frames.size() >= 150;
-// }
-
-double ippgProcess::get_RawSimple(const Mat& frame)
-{
-    if(frame.empty())
-    {
-        cout<<"frame is empty"<<endl;
-    return 0.0; // 检查图像是否为空
+// ==================== ippgProcess ====================
+double ippgProcess::get_RawSimple(const Mat& frame) {
+    if (frame.empty()) {
+        // cout << "frame is empty" << endl;
+        return 0.0;
     }
     vector<Mat> channels;
-    split(frame,channels);
-    Mat green;
-    green = channels[1];
-    double mean_value;
-    mean_value = mean(green)[0];
-    return mean_value;
-}//计算这个图像的绿色通道的中值
+    split(frame, channels);
+    Mat green = channels[1]; // 获取绿色通道
+    return mean(green)[0];   // 返回绿通道均值
+}
+
+double ippgProcess::evaluateSignalQuality(const Mat& roi) {
+    if (roi.empty()) return 0.0;
+    vector<Mat> channels;
+    split(roi, channels);
+    Mat green = channels[1];
+    Scalar mean_val, stddev_val;
+    meanStdDev(green, mean_val, stddev_val);
+    // 方差越小，ROI颜色一致性越好，信号质量越高
+    double variance = stddev_val.val[0] * stddev_val.val[0];
+    // 归一化评分 (启发式)
+    double score = 1.0 / (1.0 + variance * 0.01);
+    return score;
+}
+
+// ==================== HeartRateCalculator ====================
+HeartRateCalculator::HeartRateCalculator() : headIndex(0), dataCount(0) {
+    signalBuffer.resize(BUFFER_SIZE, 0.0);
+}
+
+void HeartRateCalculator::updateBuffer(double sample) {
+    signalBuffer[headIndex] = sample;
+    headIndex = (headIndex + 1) % BUFFER_SIZE;
+    if (dataCount < BUFFER_SIZE) dataCount++;
+}
+
+double HeartRateCalculator::processPPGSignal(double rawSample, double qualityScore) {
+    // 质量过低时可以拒绝更新，这里作为演示直接记录
+    if (qualityScore < 0.1) return 0.0;
+    
+    updateBuffer(rawSample);
+    
+    if (dataCount < BUFFER_SIZE) return 0.0;
+    
+    std::vector<double> processed = preprocessSignal();
+    return calculateHeartRateFFT(processed);
+}
+
+std::vector<double> HeartRateCalculator::preprocessSignal() {
+    std::vector<double> linearBuffer(BUFFER_SIZE);
+    
+    // 展开环形缓冲区
+    for (int i = 0; i < BUFFER_SIZE; i++) {
+        linearBuffer[i] = signalBuffer[(headIndex + i) % BUFFER_SIZE];
+    }
+    
+    double movingAvg = 0.0;
+    // 使用 OpenMP 加速均值计算
+    #pragma omp parallel for reduction(+:movingAvg)
+    for (int i = 0; i < BUFFER_SIZE; i++) {
+        movingAvg += linearBuffer[i];
+    }
+    movingAvg /= BUFFER_SIZE;
+    
+    std::vector<double> processed(BUFFER_SIZE);
+    // 运动补偿与去直流
+    #pragma omp parallel for
+    for (int i = 0; i < BUFFER_SIZE; i++) {
+        // 简单运动补偿：裁剪极值
+        double val = linearBuffer[i] - movingAvg;
+        if (val > 10.0) val = 10.0;
+        if (val < -10.0) val = -10.0;
+        processed[i] = val;
+    }
+    
+    return processed;
+}
+
+double HeartRateCalculator::calculateHeartRateFFT(const std::vector<double>& processedSignal) {
+    // 准备 OpenCV dft 输入
+    Mat input(BUFFER_SIZE, 1, CV_64F);
+    for (int i = 0; i < BUFFER_SIZE; i++) {
+        // 加汉明窗(Hamming window)减少频谱泄漏
+        double window = 0.54 - 0.46 * std::cos(2.0 * CV_PI * i / (BUFFER_SIZE - 1));
+        input.at<double>(i, 0) = processedSignal[i] * window;
+    }
+    
+    Mat spectrum;
+    dft(input, spectrum, DFT_COMPLEX_OUTPUT);
+    
+    // 计算幅度谱
+    std::vector<double> magnitude(BUFFER_SIZE / 2);
+    // 使用 OpenMP 并行计算频谱幅度
+    #pragma omp parallel for
+    for (int i = 0; i < BUFFER_SIZE / 2; i++) {
+        double re = spectrum.at<Vec2d>(i, 0)[0];
+        double im = spectrum.at<Vec2d>(i, 0)[1];
+        magnitude[i] = std::sqrt(re * re + im * im);
+    }
+    
+    // 寻找心率带范围内的峰值 (0.8Hz - 3.0Hz) -> (48 BPM - 180 BPM)
+    double minFreq = 0.8;
+    double maxFreq = 3.0;
+    int minIdx = std::max(1, (int)(minFreq * BUFFER_SIZE / SAMPLE_RATE));
+    int maxIdx = std::min(BUFFER_SIZE / 2 - 1, (int)(maxFreq * BUFFER_SIZE / SAMPLE_RATE));
+    
+    double maxMag = 0;
+    int peakIdx = minIdx;
+    
+    for (int i = minIdx; i <= maxIdx; i++) {
+        if (magnitude[i] > maxMag) {
+            maxMag = magnitude[i];
+            peakIdx = i;
+        }
+    }
+    
+    double peakFreq = (double)peakIdx * SAMPLE_RATE / BUFFER_SIZE;
+    return peakFreq * 60.0; // 转换为BPM
+}
