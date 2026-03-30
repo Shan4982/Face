@@ -66,20 +66,10 @@ mkdir build && cd build
 cmake ..
 
 # 3. 编译项目 (Windows 用户可使用 cmake --build . --config Release)
-make -j4
+cmake --build . --config Release
 
 # 4. 运行可执行文件
-./test
-```
-
-### Docker 容器化部署
-如果您不想在宿主机配置复杂的 OpenCV 环境，可以直接使用项目中提供的 Dockerfile：
-```bash
-# 构建镜像
-docker build -t face-ippg-system .
-
-# 运行容器 (注意：需要配置 X11 转发以支持摄像头和 GUI 显示)
-docker run --device=/dev/video0 -e DISPLAY=$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix face-ippg-system
+./Release/test.exe
 ```
 
 ---
